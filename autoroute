@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+
+import sys, os, io, subprocess, re
+
+# load config
+
+ignore_regex = re.compile("^ignore\s+(.+)$")
+connect_regex = re.compile("^connect\s+(.+)\s*->\s*(.+)$")
+
+ignore = {}
+
+# Forward connection map
+connect_fwd = {}
+
+# Reverse connection map
+connect_rev = {}
+
+with open('autoroute.conf', 'r') as conf:
+    for line in conf:
+        match = ignore_regex.match(line)
+        if match:
+            ignored = match.group(1).strip()
+            print('ignore match ' + ignored)
+            ignore[ignored] = ''
+            continue
+
+        match = connect_regex.match(line)
+        if match:
+            source = match.group(1).strip()
+            dest = match.group(2).strip()
+            print('connect match ' + source + '/' + dest)
+
+            if source not in connect_fwd:
+                connect_fwd[source] = [dest]
+            else:
+                connect_fwd[source].append(dest)
+
+            if dest not in connect_rev:
+                connect_rev[dest] = [source]
+            else:
+                connect_rev[dest].append(source)
+            continue
+
+        print('unmatched ' + line)
+
+for ig in ignore:
+    print("ignore " + ig)
+
+print(connect_fwd)
+
+# load current devices
+
+device_regex = re.compile("^client (\d+):")
+port_name_regex = re.compile("^\s+(\d+)\s+'(.+)'")
+
+aconnect = subprocess.Popen(['aconnect', '-l'], stdout=subprocess.PIPE)
+
+ports = {}
+device_no = -1
+device_name = -1
+for line in aconnect.stdout:
+    line = line.decode('utf-8')
+    device_match = device_regex.match(line)
+    if device_match:
+        device_no = device_match.group(1)
+        continue
+    port_match = port_name_regex.match(line)
+    if port_match:
+        port_name = port_match.group(2).strip()
+        if port_name not in ignore:
+            ports[port_name] = device_no + ":" + port_match.group(1)
+
+for dev in ports.keys():
+    print(ports[dev] + ' ' + dev)
+
+# clear all connections
+subprocess.Popen(['aconnect', '-x'])
+
+for source in connect_fwd.keys():
+    for dest in connect_fwd[source]:
+        print( "source " + source)
+        print( "dest " + dest)
+        print('Connecting ' + source + '[' + ports[source] + '] to [' + dest + '[' + ports[dest] + ']')
+        subprocess.Popen(['aconnect', ports[source], ports[dest]])
+
+# clear all connections
+subprocess.Popen(['aconnect', '-l'])
+

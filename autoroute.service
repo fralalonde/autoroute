@@ -1,0 +1,8 @@
+[Unit]
+Description=Initial USB MIDI connect
+
+[Service]
+ExecStart=/usr/local/bin/autoroute
+
+[Install]
+WantedBy=multi-user.target

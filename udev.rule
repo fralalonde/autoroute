@@ -1,0 +1,3 @@
+# this goes in /etc/udev/rules.d/33-midiusb.rules
+ACTION=="add|remove", SUBSYSTEM=="usb", DRIVER=="usb", RUN+="/usr/local/bin/autoroute"
+

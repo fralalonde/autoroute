@@ -1,88 +1,135 @@
 #!/usr/bin/python3
 
+# USB MIDI persitent patchbay using ALSA sequencer
+# developed for Raspberry Pi but could run elesewhere
+# requires python 3.5 and alsa-utils
+# can run as a service, triggered on boot and when new USB MIDI device is plugged in
+
 import sys, os, io, subprocess, re
+from shutil import copy
 
-# load config
+# args parsing
 
-ignore_regex = re.compile("^ignore\s+(.+)$")
-connect_regex = re.compile("^connect\s+(.+)\s*->\s*(.+)$")
+ARGS = iter([arg for arg in sys.argv if not arg.startswith('-')])
+OPTS = dict([opt.split('=') for opt in sys.argv if opt.startswith('-') and '=' in opt])
+#FLAGS = set([flag for flag in sys.argv if flag.startswith('-') and '=' not in flag])
 
-ignore = {}
+APP_NAME = next(ARGS)
 
-# Forward connection map
-connect_fwd = {}
+def expected_arg(name):
+    try:
+        return next(ARGS)
+    except:
+        print('Error: Missing argument "{}".'.format(name))
+        print_usage()
+        sys.exit(-1)
 
-# Reverse connection map
-connect_rev = {}
-
-with open('autoroute.conf', 'r') as conf:
-    for line in conf:
-        match = ignore_regex.match(line)
-        if match:
-            ignored = match.group(1).strip()
-            print('ignore match ' + ignored)
-            ignore[ignored] = ''
-            continue
-
-        match = connect_regex.match(line)
-        if match:
-            source = match.group(1).strip()
-            dest = match.group(2).strip()
-            print('connect match ' + source + '/' + dest)
-
-            if source not in connect_fwd:
-                connect_fwd[source] = [dest]
-            else:
-                connect_fwd[source].append(dest)
-
-            if dest not in connect_rev:
-                connect_rev[dest] = [source]
-            else:
-                connect_rev[dest].append(source)
-            continue
-
-        print('unmatched ' + line)
-
-for ig in ignore:
-    print("ignore " + ig)
-
-print(connect_fwd)
-
-# load current devices
+def print_usage():
+    print("autoroute (list | connect [--config=configfile] | install)")
+    print("default config file is autoroute.conf")
 
 device_regex = re.compile("^client (\d+):")
 port_name_regex = re.compile("^\s+(\d+)\s+'(.+)'")
-
-aconnect = subprocess.Popen(['aconnect', '-l'], stdout=subprocess.PIPE)
-
 ports = {}
-device_no = -1
-device_name = -1
-for line in aconnect.stdout:
-    line = line.decode('utf-8')
-    device_match = device_regex.match(line)
-    if device_match:
-        device_no = device_match.group(1)
-        continue
-    port_match = port_name_regex.match(line)
-    if port_match:
-        port_name = port_match.group(2).strip()
-        if port_name not in ignore:
-            ports[port_name] = device_no + ":" + port_match.group(1)
+connect_fwd = {}
 
-for dev in ports.keys():
-    print(ports[dev] + ' ' + dev)
+# load config
+ignore_regex = re.compile("^ignore\s+(.+)$")
+connect_regex = re.compile("^connect\s+(.+)\s*->\s*(.+)$")
+ignore = {}
 
-# clear all connections
-subprocess.Popen(['aconnect', '-x'])
+def load_ports():
+    aconnect = subprocess.Popen(['aconnect', '-l'], stdout=subprocess.PIPE)
+    device_no = -1
+    device_name = -1
+    for line in aconnect.stdout:
+        line = line.decode('utf-8')
+        device_match = device_regex.match(line)
+        if device_match:
+            device_no = device_match.group(1)
+            continue
+        port_match = port_name_regex.match(line)
+        if port_match:
+            port_name = port_match.group(2).strip()
+            if port_name not in ignore:
+                ports[port_name] = device_no + ":" + port_match.group(1)
 
-for source in connect_fwd.keys():
-    for dest in connect_fwd[source]:
-        print( "source " + source)
-        print( "dest " + dest)
-        print('Connecting ' + source + '[' + ports[source] + '] to [' + dest + '[' + ports[dest] + ']')
-        subprocess.Popen(['aconnect', ports[source], ports[dest]])
+def list_ports():
+    load_ports()
+    for dev in ports.keys():
+        print(ports[dev] + ' ' + dev)
 
-# clear all connections
-subprocess.Popen(['aconnect', '-l'])
+def load_config():
+    # Require ports 
+    load_ports()
+    # Forward connection map
+    conf = OPTS.get('--config', 'autoroute.conf')
+    with open(conf, 'r') as conf:
+        for line in conf:
+            match = ignore_regex.match(line)
+            if match:
+                ignored = match.group(1).strip()
+                ignore[ignored] = ''
+                continue
 
+            match = connect_regex.match(line)
+            if match:
+                source = match.group(1).strip()
+                dest = match.group(2).strip()
+
+                if source not in connect_fwd:
+                    connect_fwd[source] = [dest]
+                else:
+                    connect_fwd[source].append(dest)
+
+def connect_ports():
+    load_config()
+    subprocess.Popen(['aconnect', '-x'])
+    for source in connect_fwd.keys():
+        if source not in ports:
+            print('Device "' + source + '" not present, ignored')
+            continue
+
+        for dest in connect_fwd[source]:
+            if dest not in ports:
+               print('Device "' + dest + '" not present, ignored')
+               continue
+
+            print('Connecting ' + source + ' [' + ports[source] + '] to ' + dest + ' [' + ports[dest] + ']')
+            subprocess.Popen(['aconnect', ports[source], ports[dest]])
+
+def install_service():
+    with open('/etc/udev/rules.d/33-midiusb.rules', 'w') as file:
+        file.write('ACTION=="add|remove", SUBSYSTEM=="usb", DRIVER=="usb", RUN+="/usr/local/bin/autoroute connect --config=/etc/autoroute.conf"\n')
+    print('/etc/udev/rules.d/33-midiusb.rules')
+
+    with open('/lib/systemd/system/midi.service', 'w') as file:
+        file.write('[Unit]\n')
+        file.write('Description=Initial USB MIDI connect\n')
+        file.write('[Service]\n')
+        file.write('ExecStart=/usr/local/bin/autoroute connect --config=/etc/autoroute.conf\n')
+        file.write('[Install]\n')
+        file.write('WantedBy=multi-user.target\n')
+    print('/lib/systemd/system/midi.service')
+
+    copy(APP_NAME, '/usr/local/bin/')
+    print('/usr/local/bin/' + APP_NAME)
+
+    subprocess.Popen(['systemctl', 'enable', 'midi.service'])
+    subprocess.Popen(['udevadm', 'control', '--reload'])
+    subprocess.Popen(['service', 'udev', 'restart'])
+
+action = expected_arg('action')
+
+if action == 'connect':
+    connect_ports()
+
+elif action == 'list':
+    list_ports()
+
+elif action == 'install':
+    install_service()
+
+else:
+    print('Error: Unknown action "{}".'.format(action))
+    print_usage()

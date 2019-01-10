@@ -15,7 +15,33 @@ _Autoroute_ is simple to use:
 
 _Autoroute_ requires python 3.5. Built-in service installer requires `systemd`.
 
+## Installation
+
+At a terminal, from the raspberrypi where `autoroute` is intended to run:
+
+```
+git clone https://github.com/fralalonde/autoroute
+cd autoroute
+
+# get device names
+./autoroute list
+
+# edit the configured routes, see configuration section in README
+nano autoroute.conf
+sudo cp autoroute.conf /etc/autoroute.conf
+
+# set up udev to rerun autoroute everytime USB MIDI config changes
+sudo python3 autoroute install
+
+# reload udev (or just reboot)
+sudo udevadm control --reload-rules && udevadm trigger
+```
+
 ## Configuration
+
+The included `autoroute.conf` is a sample, and needs to replaced with entries from your own setup.
+
+Once `install`ed, autouroute reads the config from `/etc/autoroute.conf`
 
 Config file entries can be of two types:
 - `ignore` _name of device_ 

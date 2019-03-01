@@ -9,9 +9,9 @@ No GUI means it can run on simple devices such as a Raspberry Pi.
 ## Usage
 
 _Autoroute_ is simple to use:
-- `list` shows all available USB MIDI device ports
-- `connect` wires devices together according to the config file (`./autoroute.conf` is used by default)
-- `install` sets up `autoroute` as a systemd service & udev callback that triggers on boot and everytime a USB MIDI device is connected or disconnected.
+- `autoroute list` shows all available USB MIDI device ports
+- `autoroute connect` wires devices together according to the config file (`./autoroute.conf` is used by default)
+- `autoroute install` sets up `autoroute` as a systemd service & udev callback that triggers on boot and everytime a USB MIDI device is connected or disconnected.
 
 _Autoroute_ requires python 3.5. Built-in service installer requires `systemd`.
 

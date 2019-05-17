@@ -100,20 +100,22 @@ def connect_ports():
 
 def install_service():
     with open('/etc/udev/rules.d/33-midiusb.rules', 'w') as file:
-        file.write('ACTION=="add|remove", SUBSYSTEM=="usb", DRIVER=="usb", RUN+="/usr/local/bin/autoroute connect --config=/etc/autoroute.conf"\n')
+        file.write('ACTION=="add|remove", SUBSYSTEM=="usb", DRIVER=="usb", RUN+="/usr/local/bin/autoroute connect --config=/usr/local/etc/autoroute.conf"')
     print('/etc/udev/rules.d/33-midiusb.rules')
 
     with open('/lib/systemd/system/midi.service', 'w') as file:
         file.write('[Unit]\n')
         file.write('Description=Initial USB MIDI connect\n')
         file.write('[Service]\n')
-        file.write('ExecStart=/usr/local/bin/autoroute connect --config=/etc/autoroute.conf\n')
+        file.write('ExecStart=/usr/local/bin/autoroute connect --config=/usr/local/etc/autoroute.conf\n')
         file.write('[Install]\n')
         file.write('WantedBy=multi-user.target\n')
     print('/lib/systemd/system/midi.service')
 
     copy(APP_NAME, '/usr/local/bin/')
     print('/usr/local/bin/' + APP_NAME)
+    copy('autoroute.conf', '/usr/local/etc/')
+    print('/usr/local/etc/autoroute.conf')
 
     subprocess.Popen(['systemctl', 'enable', 'midi.service'])
     subprocess.Popen(['udevadm', 'control', '--reload'])

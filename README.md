@@ -28,7 +28,7 @@ cd autoroute
 
 # edit the configured routes, see configuration section in README
 nano autoroute.conf
-sudo cp autoroute.conf /etc/autoroute.conf
+sudo cp autoroute.conf /usr/local/etc/autoroute.conf
 
 # set up udev to rerun autoroute everytime USB MIDI config changes
 sudo python3 autoroute install

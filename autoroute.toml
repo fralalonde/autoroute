@@ -1,0 +1,54 @@
+# TODO
+# filter notes, vel, CC, sysex, N/RPN, clock, etc
+
+# Optional section, replaces .conf file
+# Ignored devices
+[Timer]
+ignore=true
+
+[Announce]
+ignore=true
+
+[Midi Through Port-0]
+ignore=true
+
+[Pyramid MIDI USB MIDI 1]
+alias="Pyramid"
+roles=["direct", "monitor"]
+# talks to everyone
+broadcast=true
+# listens to everyone
+monitor=true
+
+[GS-10 MIDI]
+alias=OctatrackSeq
+broadcast=true
+# Octatrack not listening to everyone
+listens-to=none
+# monitor=false
+
+[BCF2000 MIDI 1]
+alias="BCF2000"
+broadcast=true
+# monitoring enabled for learn
+monitor=true
+
+[Arturia BeatStep MIDI 1]
+alias=BeatStep
+broadcast=true
+
+[RD-8 MIDI 1]
+alias=RD-8
+# for clock
+broadcast=true
+
+[USB Uno MIDI Interface MIDI 1]
+alias=Waldorf Micro Q
+
+[Neutron(1) MIDI 1]
+alias=Neutron
+# Neutron doesn't send anything, no need to monitor it
+exclude=monitor
+
+[Moog Sub 37 MIDI 1]
+alias=Sub37

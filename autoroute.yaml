@@ -1,0 +1,37 @@
+# TODO filter notes, vel, CC, sysex, N/RPN, clock, etc
+
+devices:
+  - port_name: Pyramid MIDI USB MIDI 1
+    alias: Pyramid
+    roles:
+      # talks to everyone
+      - Broadcast
+      # listens to everyone
+      - Monitor
+  - port_name: GS-10 MIDI
+    # default is duplex
+    port-dir: input
+    alias: OctaSeq
+    roles:
+      - Broadcast
+  - port_name: BCF2000 MIDI 1
+    alias: BCF2000
+    roles:
+      - Broadcast
+      - Monitor
+  - port_name: Arturia BeatStep MIDI 1
+    alias: BeatStep
+    roles:
+      - Broadcast
+  - port_name: RD-8 MIDI 1
+    alias: RD-8
+    roles:
+      - Clock
+  - port_name: USB Uno MIDI Interface MIDI 1
+    alias: Micro Q
+  - port_name: Neutron(1) MIDI 1
+    alias: Neutron
+    # Neutron doesn't send anything, no need to monitor it
+    port-dir: output
+  - port_name: USB Uno MIDI Interface MIDI 1
+    alias: Sub37

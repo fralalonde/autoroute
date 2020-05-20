@@ -1,0 +1,11 @@
+[package]
+name = "autoroute"
+version = "0.1.0"
+authors = ["Francis Lalonde <fralalonde@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+structopt = "0.3"
+alsa = "0.4.2"
+serde =  { version = "1.0", features = ["derive"] }
+serde_yaml = "0.8"

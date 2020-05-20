@@ -12,9 +12,11 @@ from shutil import copy
 
 ARGS = iter([arg for arg in sys.argv if not arg.startswith('-')])
 OPTS = dict([opt.split('=') for opt in sys.argv if opt.startswith('-') and '=' in opt])
-#FLAGS = set([flag for flag in sys.argv if flag.startswith('-') and '=' not in flag])
+
+# FLAGS = set([flag for flag in sys.argv if flag.startswith('-') and '=' not in flag])
 
 APP_NAME = next(ARGS)
+
 
 def expected_arg(name):
     try:
@@ -24,9 +26,11 @@ def expected_arg(name):
         print_usage()
         sys.exit(-1)
 
+
 def print_usage():
     print("autoroute (list | connect [--config=configfile] | install)")
     print("default config file is autoroute.conf")
+
 
 device_regex = re.compile("^client (\d+):")
 port_name_regex = re.compile("^\s+(\d+)\s+'(.+)'")
@@ -37,6 +41,7 @@ connect_fwd = {}
 ignore_regex = re.compile("^ignore\s+(.+)$")
 connect_regex = re.compile("^connect\s+(.+)\s*->\s*(.+)$")
 ignore = {}
+
 
 def load_ports():
     aconnect = subprocess.Popen(['aconnect', '-l'], stdout=subprocess.PIPE)
@@ -54,10 +59,12 @@ def load_ports():
             if port_name not in ignore:
                 ports[port_name] = device_no + ":" + port_match.group(1)
 
+
 def list_ports():
     load_ports()
     for dev in ports.keys():
         print(ports[dev] + ' ' + dev)
+
 
 def load_config():
     # Require ports 
@@ -82,6 +89,7 @@ def load_config():
                 else:
                     connect_fwd[source].append(dest)
 
+
 def connect_ports():
     load_config()
     subprocess.Popen(['aconnect', '-x'])
@@ -98,9 +106,11 @@ def connect_ports():
             print('Connecting ' + source + ' [' + ports[source] + '] to ' + dest + ' [' + ports[dest] + ']')
             subprocess.Popen(['aconnect', ports[source], ports[dest]])
 
+
 def install_service():
     with open('/etc/udev/rules.d/33-midiusb.rules', 'w') as file:
         file.write('ACTION=="add|remove", SUBSYSTEM=="usb", DRIVER=="usb", RUN+="/usr/local/bin/autoroute connect --config=/etc/autoroute.conf"\n')
+
     print('/etc/udev/rules.d/33-midiusb.rules')
 
     with open('/lib/systemd/system/midi.service', 'w') as file:
@@ -118,6 +128,7 @@ def install_service():
     subprocess.Popen(['systemctl', 'enable', 'midi.service'])
     subprocess.Popen(['udevadm', 'control', '--reload'])
     subprocess.Popen(['service', 'udev', 'restart'])
+
 
 action = expected_arg('action')
 
